@@ -52,7 +52,53 @@
         }
     </style>
 @endpush
+@php
+    
 
+ $categoryIds = collect($getCategorydetail['product_category'] ?? [])
+    ->pluck('category_id')
+    ->filter()
+    ->toArray();
+
+   
+$categorySlugs = [];
+
+if (!empty($categoryIds)) {
+    $categorySlugs = DB::table('category_translations')
+        ->whereIn('category_id', $categoryIds)
+        ->where('locale', app()->getLocale())
+        ->pluck('slug')
+        ->filter()
+        ->map(fn($slug) => trim($slug))
+        ->toArray();
+}
+if (empty($categorySlugs)) {
+    $categorySlugs = ['not-available'];
+}
+
+// Convert array to comma-separated string
+$categorySlugsString = implode(',', $categorySlugs);
+
+// dd($categorySlugsString);
+if (Auth::check()) {
+    $date_of_birth = auth()->user()->date_of_birth;
+} else {
+    $guestToken = Session::token();
+    $guestDob = DB::table('customers')
+        ->where('token', $guestToken)
+        ->value('date_of_birth');
+
+    $date_of_birth = $guestDob;
+}
+       
+@endphp
+<input type="hidden" id="category_slug" value="{{ $categorySlugsString }}">
+
+<input type="hidden" 
+    id="userAge"    
+        value="{{ $date_of_birth ? \Carbon\Carbon::parse($date_of_birth)->age : '' }}"
+   
+>
 @section('content-wrapper')
     <div class="container category-page-wrapper">
         <search-component></search-component>
@@ -177,12 +223,14 @@
                     {{-- @endif --}}
                     
                     <div id="search-item-list" class="search-item col-12">
+                         
                     @foreach ($results as $productFlat)
                         @if ($toolbarHelper->getCurrentMode() == 'grid')
                             @include('shop::products.list.search-card', [
                                 'cardClass' => 'category-product-image-container',
                                 'product' => $productFlat->product,
                             ])
+                           
                         @else
                             @include('shop::products.list.search-card', [
                                 'list' => true,
@@ -190,13 +238,16 @@
                             ])
                         @endif
                     @endforeach
-
+                   @include ('shop::search.agemodel')
                     @include('ui::datagrid.pagination')
                     </div>
+                    
                 @endif
             @endif
         </section>
+
     </script>
+
 
     <script>
         Vue.component('search-component', {
@@ -228,3 +279,5 @@
         });
     </script>
 @endpush
+
+
