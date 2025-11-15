@@ -31,7 +31,7 @@ class SendCustomerEnquieyMail implements ShouldQueue
      */
     public function handle(): void
     {
-        $admins = Admin::select('name', 'email')->where('role_id', 1)->get();
+        $admins = Admin::select('name', 'email')->where('role_id', 1)->where('status', 1)->get();
         $emailList = $admins->pluck('email')->toArray();
         $data = $this->data;
 
